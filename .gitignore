@@ -1,0 +1,10 @@
+# Helm packaging output
+*.tgz
+charts/**/charts/
+
+# Rendered output (if you experiment locally)
+rendered/
+*.rendered.yaml
+
+# Editor / OS
+.DS_Store

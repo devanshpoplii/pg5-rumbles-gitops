@@ -1,0 +1,44 @@
+# Prod environment overrides.
+# Prod is a real progressive rollout: stepped canary weights, a bake/observation
+# pause, and a health-based analysis gate that auto-aborts (rolls back) on failure.
+# Same Rollout object as dev — only the strategy and image digest differ.
+
+replicaCount: 3
+
+image:
+  # TODO(pipeline): replaced on every promotion. Set to your ECR repo URL.
+  repository: "111122223333.dkr.ecr.us-east-1.amazonaws.com/rumbles"
+  # The pipeline writes the immutable digest here on promotion to prod.
+  digest: ""
+  tag: "prod"
+
+rollout:
+  strategy:
+    type: canary
+    canary:
+      steps:
+        - setWeight: 10
+        # Bake / observation period before analysis begins.
+        - pause:
+            duration: 2m
+        - setWeight: 25
+        - pause:
+            duration: 5m
+        - setWeight: 50
+        - pause:
+            duration: 5m
+        - setWeight: 100
+      analysis:
+        enabled: true
+        templateName: rumbles-health
+        # Begin analysis after the first weight step (index 1).
+        startingStep: 1
+
+# Health gate. Default provider is a simple /health poll so the demo works
+# out of the box. Switch provider to "cloudwatch" or "datadog" to wire real signals.
+analysis:
+  provider: web
+  web:
+    intervalSeconds: 30
+    count: 5
+    failureLimit: 1

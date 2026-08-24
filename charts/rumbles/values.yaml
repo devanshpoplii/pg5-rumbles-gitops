@@ -1,0 +1,77 @@
+# Default values for the rumbles chart.
+# Per-environment overrides live in ../../envs/<env>/values.yaml.
+# These defaults are intentionally conservative; every environment sets its own
+# image digest and rollout strategy.
+
+replicaCount: 2
+
+image:
+  # ECR repository URL, e.g. 111122223333.dkr.ecr.us-east-1.amazonaws.com/rumbles
+  repository: ""
+  # Immutable digest, e.g. sha256:abc123... The pipeline writes this on promotion.
+  # Prefer digest over tag for true immutability. If digest is empty, tag is used.
+  digest: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+# Rollout strategy. Overridden per environment.
+# strategy.type: "canary" or "blueGreen"
+# For dev we use a single canary step straight to 100% (no gating).
+# For prod we use stepped canary weights with an analysis gate.
+rollout:
+  strategy:
+    type: canary
+    canary:
+      # List of steps. Each item is either {setWeight: N} or {pause: {duration: "..."}}
+      # or {analysis: {...}} handled by the template.
+      steps:
+        - setWeight: 100
+      # When true, an AnalysisTemplate gate is attached to the canary steps.
+      analysis:
+        enabled: false
+        # Name of the AnalysisTemplate to reference (rendered by this chart).
+        templateName: rumbles-health
+        # startingStep: which canary step index to begin analysis at.
+        startingStep: 1
+
+# Analysis gate configuration (health-based promotion / rollback).
+# provider: "cloudwatch" or "datadog" or "web" (a simple /health poll).
+analysis:
+  provider: web
+  # For provider: web — polls the app's /health endpoint.
+  web:
+    successConditionThreshold: 0.95
+    intervalSeconds: 30
+    count: 5
+    failureLimit: 1
+  # For provider: cloudwatch — placeholder metric config (filled in later step).
+  cloudwatch:
+    namespace: "AWS/ApplicationELB"
+    metricName: "HTTPCode_Target_5XX_Count"
+    intervalSeconds: 60
+    count: 5
+  # For provider: datadog — placeholder query (filled in later step).
+  datadog:
+    query: "sum:trace.http.request.errors{service:rumbles}.as_count()"
+    intervalSeconds: 60
+    count: 5
+
+# Liveness/readiness probe paths (match the app endpoints).
+probes:
+  path: /health
+  port: 8080
+
+env: []

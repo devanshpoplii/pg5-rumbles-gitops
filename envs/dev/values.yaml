@@ -1,0 +1,21 @@
+# Dev environment overrides.
+# Dev prioritizes fast feedback: a single canary step straight to 100%, no gates.
+# Same Rollout object as prod — only the strategy and image digest differ.
+
+replicaCount: 1
+
+image:
+  # TODO(pipeline): replaced on every promotion. Set to your ECR repo URL.
+  repository: "111122223333.dkr.ecr.us-east-1.amazonaws.com/rumbles"
+  # The pipeline writes the immutable digest here. Empty falls back to tag.
+  digest: ""
+  tag: "dev"
+
+rollout:
+  strategy:
+    type: canary
+    canary:
+      steps:
+        - setWeight: 100
+      analysis:
+        enabled: false

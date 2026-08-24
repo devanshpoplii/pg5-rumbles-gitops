@@ -1,0 +1,8 @@
+apiVersion: v2
+name: rumbles
+description: Helm chart for the rumbles service, deployed via Argo CD + Argo Rollouts
+type: application
+version: 0.1.0
+# appVersion is informational only; the actual running version is promoted by
+# image digest through the per-environment values files.
+appVersion: "0.1.0"

@@ -1,0 +1,54 @@
+{{- if .Values.rollout.strategy.canary.analysis.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ .Values.rollout.strategy.canary.analysis.templateName }}
+  labels:
+    {{- include "rumbles.labels" . | nindent 4 }}
+spec:
+  metrics:
+    {{- if eq .Values.analysis.provider "web" }}
+    # Simple health-based gate: polls the canary /health endpoint and requires
+    # an HTTP 200. Good default for a demo; swap to cloudwatch/datadog for prod signals.
+    - name: health-check
+      interval: {{ .Values.analysis.web.intervalSeconds }}s
+      count: {{ .Values.analysis.web.count }}
+      failureLimit: {{ .Values.analysis.web.failureLimit }}
+      successCondition: "result == true"
+      provider:
+        web:
+          url: "http://{{ include "rumbles.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}{{ .Values.probes.path }}"
+          jsonPath: "{$.status}"
+    {{- else if eq .Values.analysis.provider "cloudwatch" }}
+    # CloudWatch gate: promotion continues only while the error metric stays low.
+    # Requires the Rollouts controller to have CloudWatch read permissions (IRSA/Pod Identity).
+    - name: cloudwatch-error-rate
+      interval: {{ .Values.analysis.cloudwatch.intervalSeconds }}s
+      count: {{ .Values.analysis.cloudwatch.count }}
+      # successCondition asserts the 5XX count stays below threshold.
+      successCondition: "len(result) == 0 || result[0] < 5"
+      failureLimit: 1
+      provider:
+        cloudWatch:
+          metricDataQueries:
+            - id: errors
+              metricStat:
+                metric:
+                  namespace: {{ .Values.analysis.cloudwatch.namespace }}
+                  metricName: {{ .Values.analysis.cloudwatch.metricName }}
+                period: 60
+                stat: Sum
+    {{- else if eq .Values.analysis.provider "datadog" }}
+    # Datadog gate: promotion continues only while the error query stays low.
+    # Requires a Datadog API/App key secret in the rollouts namespace.
+    - name: datadog-error-rate
+      interval: {{ .Values.analysis.datadog.intervalSeconds }}s
+      count: {{ .Values.analysis.datadog.count }}
+      successCondition: "result < 5"
+      failureLimit: 1
+      provider:
+        datadog:
+          apiVersion: v2
+          query: {{ .Values.analysis.datadog.query | quote }}
+    {{- end }}
+{{- end }}

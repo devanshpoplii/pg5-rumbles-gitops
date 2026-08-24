@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "rumbles.fullname" . }}
+  labels:
+    {{- include "rumbles.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "rumbles.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "rumbles.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rumbles
+          image: {{ include "rumbles.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.probes.port }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: {{ .Values.probes.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: {{ .Values.probes.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  strategy:
+    {{- if eq .Values.rollout.strategy.type "canary" }}
+    canary:
+      steps:
+        {{- range .Values.rollout.strategy.canary.steps }}
+        {{- if hasKey . "setWeight" }}
+        - setWeight: {{ .setWeight }}
+        {{- else if hasKey . "pause" }}
+        - pause:
+            {{- if .pause.duration }}
+            duration: {{ .pause.duration }}
+            {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.rollout.strategy.canary.analysis.enabled }}
+      analysis:
+        startingStep: {{ .Values.rollout.strategy.canary.analysis.startingStep }}
+        templates:
+          - templateName: {{ .Values.rollout.strategy.canary.analysis.templateName }}
+      {{- end }}
+    {{- else if eq .Values.rollout.strategy.type "blueGreen" }}
+    blueGreen:
+      activeService: {{ include "rumbles.fullname" . }}
+      autoPromotionEnabled: {{ .Values.rollout.strategy.blueGreen.autoPromotionEnabled | default false }}
+    {{- end }}
