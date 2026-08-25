@@ -30,7 +30,7 @@ resources:
 # Rollout strategy. Overridden per environment.
 # strategy.type: "canary" or "blueGreen"
 # For dev we use a single canary step straight to 100% (no gating).
-# For prod we use stepped canary weights with an analysis gate.
+# For qa we use stepped canary weights with an analysis gate.
 rollout:
   strategy:
     type: canary

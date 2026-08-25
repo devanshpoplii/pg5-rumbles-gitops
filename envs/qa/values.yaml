@@ -1,5 +1,5 @@
-# Prod environment overrides.
-# Prod is a real progressive rollout: stepped canary weights, a bake/observation
+# QA environment overrides.
+# QA is a real progressive rollout: stepped canary weights, a bake/observation
 # pause, and a health-based analysis gate that auto-aborts (rolls back) on failure.
 # Same Rollout object as dev — only the strategy and image digest differ.
 
@@ -8,9 +8,9 @@ replicaCount: 3
 image:
   # TODO(pipeline): replaced on every promotion. Set to your ECR repo URL.
   repository: "111122223333.dkr.ecr.us-east-1.amazonaws.com/rumbles"
-  # The pipeline writes the immutable digest here on promotion to prod.
+  # The pipeline writes the immutable digest here on promotion to qa.
   digest: ""
-  tag: "prod"
+  tag: "qa"
 
 rollout:
   strategy:

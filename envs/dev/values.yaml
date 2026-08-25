@@ -1,6 +1,6 @@
 # Dev environment overrides.
 # Dev prioritizes fast feedback: a single canary step straight to 100%, no gates.
-# Same Rollout object as prod — only the strategy and image digest differ.
+# Same Rollout object as qa — only the strategy and image digest differ.
 
 replicaCount: 1
 

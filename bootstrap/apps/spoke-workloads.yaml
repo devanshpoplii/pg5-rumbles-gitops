@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: spoke-workloads
+  namespace: argocd
+  # Keep the project even if the bootstrap app is deleted, to avoid orphaning apps.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Workloads deployed from the pg5-rumbles-gitops repo to the spoke clusters
+
+  # Only this repo may be used as an Application source in this project.
+  sourceRepos:
+    - https://github.com/devanshpoplii/pg5-rumbles-gitops.git
+
+  # Allowed deployment destinations. Isolation is by PHYSICAL CLUSTER (dev spoke
+  # vs qa spoke), not by namespace — so the app uses the same "rumbles"
+  # namespace on both clusters, and we whitelist the two spoke clusters by their
+  # EKS cluster ARN.
+  destinations:
+    - name: dev-cluster
+      server: "arn:aws:eks:eu-north-1:849445096948:cluster/dev-cluster"
+      namespace: rumbles
+    - name: qa-cluster
+      server: "arn:aws:eks:eu-north-1:849445096948:cluster/qa-cluster"
+      namespace: rumbles
+
+  # Allow the cluster-scoped and namespaced resources this chart needs.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: argoproj.io
+      kind: Rollout
+    - group: argoproj.io
+      kind: AnalysisTemplate
+
+  # RBAC role used by CI/CD pipelines to sync qa (least-privilege token).
+  roles:
+    - name: ci-pipeline
+      description: Token role for the promotion pipeline to sync applications
+      policies:
+        - p, proj:spoke-workloads:ci-pipeline, applications, get, spoke-workloads/*, allow
+        - p, proj:spoke-workloads:ci-pipeline, applications, sync, spoke-workloads/*, allow

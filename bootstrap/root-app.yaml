@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rumbles-bootstrap
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Bootstrap runs in the default project (it manages the spoke-workloads project itself).
+  project: default
+  source:
+    repoURL: https://github.com/devanshpoplii/pg5-rumbles-gitops.git
+    targetRevision: main
+    # Sync every manifest under bootstrap/apps (the AppProject and the
+    # ApplicationSet). Using Argo CD native directory recursion avoids
+    # kustomize's cross-directory file restriction. This is the single
+    # object you apply once on the hub to bring up the control plane.
+    path: bootstrap/apps
+    directory:
+      recurse: true
+  destination:
+    # Applied to the hub cluster (where Argo CD runs).
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

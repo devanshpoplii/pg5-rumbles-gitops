@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: rumbles
+  namespace: argocd
+spec:
+  # goTemplate lets us use Go templating (cleaner than the legacy {{}} params).
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    # Cluster generator: creates one Application per registered spoke cluster
+    # whose secret carries the label app=rumbles. The env label (dev/qa)
+    # selects the values file and the sync policy below.
+    - clusters:
+        selector:
+          matchLabels:
+            app: rumbles
+
+  template:
+    metadata:
+      # e.g. rumbles-spoke-cluster-dev
+      name: "rumbles-{{.name}}"
+      labels:
+        app.kubernetes.io/name: rumbles
+        env: "{{.metadata.labels.env}}"
+    spec:
+      project: spoke-workloads
+      source:
+        repoURL: https://github.com/devanshpoplii/pg5-rumbles-gitops.git
+        targetRevision: main
+        path: charts/rumbles
+        helm:
+          # Pick the per-environment values file based on the cluster's env label.
+          valueFiles:
+            - "../../envs/{{.metadata.labels.env}}/values.yaml"
+      destination:
+        # Isolation is by physical cluster (dev spoke vs qa spoke), so the app
+        # uses the same "rumbles" namespace on both. The cluster it lands on is
+        # what separates the environments, not the namespace.
+        server: "{{.server}}"
+        namespace: rumbles
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+
+  # Per-environment sync behaviour via strategic-merge patch on the generated app.
+  # dev: fully automated (auto-sync + self-heal). qa: manual sync (promotion gate).
+  templatePatch: |
+    spec:
+      syncPolicy:
+        {{- if eq .metadata.labels.env "dev" }}
+        automated:
+          prune: true
+          selfHeal: true
+        {{- end }}

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dev-cluster
+  namespace: argocd
+  labels:
+    # Marks this as an Argo CD cluster registration secret.
+    argocd.argoproj.io/secret-type: cluster
+    # Selected by the rumbles ApplicationSet cluster generator.
+    app: rumbles
+    # Drives values-file selection in the ApplicationSet: envs/dev/values.yaml.
+    env: dev
+type: Opaque
+stringData:
+  # Human-readable name → becomes {{.name}} in the ApplicationSet
+  # (generated app: rumbles-dev-cluster).
+  name: dev-cluster
+  # With the EKS Capability for Argo CD, the server is the EKS cluster ARN,
+  # not a Kubernetes API URL. AWS manages connectivity via EKS Access Entries.
+  server: arn:aws:eks:eu-north-1:849445096948:cluster/dev-cluster
+  # The config block is intentionally minimal — the managed capability handles
+  # authentication through the Argo CD Capability IAM role + EKS Access Entry.
+  config: |
+    {
+      "awsAuthConfig": {
+        "clusterName": "dev-cluster"
+      }
+    }
