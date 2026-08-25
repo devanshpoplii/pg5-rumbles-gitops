@@ -9,6 +9,14 @@ metadata:
 spec:
   description: Workloads deployed from the pg5-rumbles-gitops repo to the spoke clusters
 
+  # Namespaces allowed to contain Applications/ApplicationSets that reference
+  # this project. REQUIRED by the EKS Argo CD capability (unlike OSS Argo CD,
+  # where it is optional). The rumbles ApplicationSet creates its Applications
+  # in the argocd namespace, so argocd must be listed here — otherwise apps get
+  # "is not permitted to use project 'spoke-workloads'".
+  sourceNamespaces:
+    - argocd
+
   # Only this repo may be used as an Application source in this project.
   sourceRepos:
     - https://github.com/devanshpoplii/pg5-rumbles-gitops.git
