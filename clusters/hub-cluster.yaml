@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hub-cluster
+  namespace: argocd
+  labels:
+    # Marks this as an Argo CD cluster registration secret.
+    argocd.argoproj.io/secret-type: cluster
+    # NOTE: intentionally NOT labelled app=rumbles — the hub runs the control
+    # plane only and must not be selected by the rumbles ApplicationSet.
+type: Opaque
+stringData:
+  # Human-readable name for the hub cluster.
+  name: hub-cluster
+  # With the EKS Capability, the in-cluster default (https://kubernetes.default.svc)
+  # is disabled, so the hub must be registered explicitly by its EKS cluster ARN —
+  # the same way the spokes are. The bootstrap root app targets this server.
+  server: arn:aws:eks:eu-north-1:849445096948:cluster/hub-cluster
+  config: |
+    {
+      "awsAuthConfig": {
+        "clusterName": "hub-cluster"
+      }
+    }

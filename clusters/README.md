@@ -10,6 +10,22 @@ spokes exist and how to reach them.
 | `dev-cluster`  | Spoke (dev workloads)  | `arn:aws:eks:eu-north-1:849445096948:cluster/dev-cluster` |
 | `qa-cluster`   | Spoke (qa workloads)   | `arn:aws:eks:eu-north-1:849445096948:cluster/qa-cluster` |
 
+## Important: the hub must be registered too
+
+With the **managed EKS Capability**, the in-cluster default
+(`https://kubernetes.default.svc`) is **disabled**. Every cluster — including the
+hub where Argo CD runs — must be registered explicitly by its EKS ARN. The
+bootstrap root app targets the hub by ARN, so `clusters/hub-cluster.yaml` must be
+applied before (or with) `bootstrap/root-app.yaml`, or you get:
+
+```
+error getting cluster by server "https://kubernetes.default.svc":
+  cluster "https://kubernetes.default.svc" is disabled
+```
+
+The hub secret is intentionally **not** labelled `app: rumbles`, so the rumbles
+ApplicationSet never deploys workloads onto the hub.
+
 ## Two things are required per spoke
 
 Registering a spoke has **two halves** — miss either and deployment fails:
@@ -63,8 +79,13 @@ done
 # Point kubectl at the hub cluster first.
 aws eks update-kubeconfig --region eu-north-1 --name hub-cluster
 
+# Register all three clusters — the hub (control plane) and both spokes.
+kubectl apply -n argocd -f clusters/hub-cluster.yaml
 kubectl apply -n argocd -f clusters/dev-cluster.yaml
 kubectl apply -n argocd -f clusters/qa-cluster.yaml
+
+# Then apply the bootstrap root app (targets the hub by ARN).
+kubectl apply -n argocd -f bootstrap/root-app.yaml
 ```
 
 ### 3. Verify Argo CD sees the clusters

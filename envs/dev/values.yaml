@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  # TODO(pipeline): replaced on every promotion. Set to your ECR repo URL.
-  repository: "111122223333.dkr.ecr.us-east-1.amazonaws.com/rumbles"
+  # Real ECR repo. The pipeline writes the immutable digest below on each build.
+  repository: "849445096948.dkr.ecr.eu-north-1.amazonaws.com/rumbles"
   # The pipeline writes the immutable digest here. Empty falls back to tag.
   digest: ""
   tag: "dev"

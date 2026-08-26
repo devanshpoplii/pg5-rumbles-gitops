@@ -19,8 +19,11 @@ spec:
     directory:
       recurse: true
   destination:
-    # Applied to the hub cluster (where Argo CD runs).
-    server: https://kubernetes.default.svc
+    # The hub cluster, where the control-plane objects live. With the EKS
+    # Capability the in-cluster default (https://kubernetes.default.svc) is
+    # DISABLED, so we must target the hub by its registered EKS cluster ARN
+    # (see clusters/hub-cluster.yaml).
+    server: arn:aws:eks:eu-north-1:849445096948:cluster/hub-cluster
     namespace: argocd
   syncPolicy:
     automated:
