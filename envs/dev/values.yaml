@@ -3,14 +3,12 @@
 # Same Rollout object as qa — only the strategy and image digest differ.
 
 replicaCount: 1
-
 image:
   # Real ECR repo. The pipeline writes the immutable digest below on each build.
   repository: "849445096948.dkr.ecr.eu-north-1.amazonaws.com/rumbles"
   # The pipeline writes the immutable digest here. Empty falls back to tag.
-  digest: ""
-  tag: "dev"
-
+  digest: "sha256:20ade3178de3d0a1d9248e2a76c5417d7bc11e247c168a4dde492e6e4e7d93e6"
+  tag: "6f3d70cacfcb"
 rollout:
   strategy:
     type: canary
