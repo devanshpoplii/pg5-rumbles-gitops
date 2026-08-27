@@ -7,8 +7,8 @@ image:
   # Real ECR repo. The pipeline writes the immutable digest below on each build.
   repository: "849445096948.dkr.ecr.eu-north-1.amazonaws.com/rumbles"
   # The pipeline writes the immutable digest here. Empty falls back to tag.
-  digest: "sha256:2c28ec3bbb0a09f3504b4595eb76940b921e5ba440016c1929b40da9b0c0c14e"
-  tag: "955749772995"
+  digest: "sha256:6249f94c5e6111c14ea8d1b905d1804017d063107cc82e637c6675de1b5930be"
+  tag: "e1c850280204"
 rollout:
   strategy:
     type: canary
