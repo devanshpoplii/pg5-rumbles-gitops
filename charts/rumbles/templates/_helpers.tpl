@@ -27,12 +27,17 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{/*
 Resolve the container image reference.
-Prefer the immutable digest; fall back to tag only if digest is unset.
+Enterprise posture: deploy STRICTLY by immutable digest. If the digest is
+missing we FAIL the render rather than fall back to a mutable tag — a mutable
+tag defeats the point of immutability. The `tag` value is kept elsewhere only
+as human-readable metadata (which commit an image came from), never for pulling.
 */}}
 {{- define "rumbles.image" -}}
-{{- if .Values.image.digest -}}
-{{- printf "%s@%s" .Values.image.repository .Values.image.digest -}}
-{{- else -}}
-{{- printf "%s:%s" .Values.image.repository .Values.image.tag -}}
+{{- if not .Values.image.repository -}}
+{{- fail "image.repository is required" -}}
 {{- end -}}
+{{- if not .Values.image.digest -}}
+{{- fail "image.digest is required — refusing to deploy by mutable tag. The pipeline must pin an immutable @sha256 digest." -}}
+{{- end -}}
+{{- printf "%s@%s" .Values.image.repository .Values.image.digest -}}
 {{- end -}}
