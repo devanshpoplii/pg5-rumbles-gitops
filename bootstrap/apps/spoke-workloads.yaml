@@ -44,6 +44,13 @@ spec:
       kind: Rollout
     - group: argoproj.io
       kind: AnalysisTemplate
+    # ReplicaSet and Pod are created BY the Rollout controller (not by us / Git),
+    # but the Argo CD UI only renders child resources that are also allow-listed.
+    # Without these, the Rollout node shows with no ReplicaSet/Pods beneath it.
+    - group: apps
+      kind: ReplicaSet
+    - group: ""
+      kind: Pod
 
   # RBAC role used by CI/CD pipelines to sync qa (least-privilege token).
   roles:
