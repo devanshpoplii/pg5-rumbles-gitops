@@ -47,11 +47,15 @@ spec:
 
   # Per-environment sync behaviour via strategic-merge patch on the generated app.
   # dev: fully automated (auto-sync + self-heal). qa: manual sync (promotion gate).
+  # IMPORTANT: the whole `spec` must be inside the `if`. If the patch emits a bare
+  # `spec: {syncPolicy:}` for qa, that empty syncPolicy overwrites the base
+  # syncPolicy and strips qa's syncOptions (CreateNamespace/ApplyOutOfSyncOnly).
+  # By gating the entire block, qa gets an EMPTY patch and keeps the base intact.
   templatePatch: |
+    {{- if eq .metadata.labels.env "dev" }}
     spec:
       syncPolicy:
-        {{- if eq .metadata.labels.env "dev" }}
         automated:
           prune: true
           selfHeal: true
-        {{- end }}
+    {{- end }}
