@@ -26,6 +26,12 @@ ingress:
   # Frontend security group ID for the ALB (client-facing).
   securityGroup: ""
 
+# Level 2 canary: real ALB weighted traffic splitting between stable and canary
+# target groups (vs Level 1 which only weights the pod ratio). Disabled by
+# default; enabled per-env (qa). Requires ingress.enabled: true.
+trafficRouting:
+  enabled: false
+
 resources:
   requests:
     cpu: 50m
@@ -34,13 +40,11 @@ resources:
     cpu: 250m
     memory: 128Mi
 
-# Rollout strategy. Overridden per environment.
-# strategy.type: "canary" or "blueGreen"
+# Rollout strategy (always canary). Overridden per environment.
 # For dev we use a single canary step straight to 100% (no gating).
 # For qa we use stepped canary weights with an analysis gate.
 rollout:
   strategy:
-    type: canary
     canary:
       # List of steps. Each item is either {setWeight: N} or {pause: {duration: "..."}}
       # or {analysis: {...}} handled by the template.

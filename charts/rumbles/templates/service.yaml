@@ -1,3 +1,41 @@
+{{- if .Values.trafficRouting.enabled }}
+# Level 2 (ALB traffic routing): Rollouts needs TWO services it manages the
+# selectors on — a stable service and a canary service — plus the Ingress points
+# at the stable (root) service. Rollouts injects the weighted-action annotation
+# on the Ingress to split real ALB traffic between these two target groups.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rumbles.fullname" . }}-stable
+  labels:
+    {{- include "rumbles.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "rumbles.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rumbles.fullname" . }}-canary
+  labels:
+    {{- include "rumbles.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "rumbles.selectorLabels" . | nindent 4 }}
+{{- else }}
+# Level 1 (dev): a single service; the canary weights the pod ratio only.
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,3 +51,4 @@ spec:
       protocol: TCP
   selector:
     {{- include "rumbles.selectorLabels" . | nindent 4 }}
+{{- end }}

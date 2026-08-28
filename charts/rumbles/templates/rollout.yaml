@@ -58,8 +58,18 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
   strategy:
-    {{- if eq .Values.rollout.strategy.type "canary" }}
     canary:
+      {{- if .Values.trafficRouting.enabled }}
+      # Level 2: Rollouts manages these two services' selectors (stable vs canary)
+      # and injects the weighted-action annotation on the Ingress to split real
+      # ALB traffic between their target groups per the current setWeight.
+      canaryService: {{ include "rumbles.fullname" . }}-canary
+      stableService: {{ include "rumbles.fullname" . }}-stable
+      trafficRouting:
+        alb:
+          ingress: {{ include "rumbles.fullname" . }}
+          servicePort: {{ .Values.service.port }}
+      {{- end }}
       steps:
         {{- range .Values.rollout.strategy.canary.steps }}
         {{- if hasKey . "setWeight" }}
@@ -77,8 +87,3 @@ spec:
         templates:
           - templateName: {{ .Values.rollout.strategy.canary.analysis.templateName }}
       {{- end }}
-    {{- else if eq .Values.rollout.strategy.type "blueGreen" }}
-    blueGreen:
-      activeService: {{ include "rumbles.fullname" . }}
-      autoPromotionEnabled: {{ .Values.rollout.strategy.blueGreen.autoPromotionEnabled | default false }}
-    {{- end }}

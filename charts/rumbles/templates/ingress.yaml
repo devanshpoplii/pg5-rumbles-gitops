@@ -29,7 +29,17 @@ spec:
             pathType: Prefix
             backend:
               service:
+                {{- if .Values.trafficRouting.enabled }}
+                # Level 2: point at the stable service; the port MUST be
+                # "use-annotation" so the LB Controller reads the weighted-action
+                # annotation that Argo Rollouts injects for canary/stable split.
+                name: {{ include "rumbles.fullname" . }}-stable
+                port:
+                  name: use-annotation
+                {{- else }}
                 name: {{ include "rumbles.fullname" . }}
                 port:
                   number: {{ .Values.service.port }}
+                {{- end }}
 {{- end }}
+
