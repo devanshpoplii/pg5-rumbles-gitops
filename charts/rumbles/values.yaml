@@ -68,12 +68,13 @@ analysis:
     intervalSeconds: 30
     count: 5
     failureLimit: 1
-  # For provider: cloudwatch — placeholder metric config (filled in later step).
+  # For provider: cloudwatch — gate on the canary target group's 5XX error rate.
   cloudwatch:
-    namespace: "AWS/ApplicationELB"
-    metricName: "HTTPCode_Target_5XX_Count"
     intervalSeconds: 60
     count: 5
+    failureLimit: 1
+    # Fail the canary if the 5XX error rate exceeds this fraction (0.05 = 5%).
+    errorRateThreshold: 0.05
   # For provider: datadog — placeholder query (filled in later step).
   datadog:
     query: "sum:trace.http.request.errors{service:rumbles}.as_count()"

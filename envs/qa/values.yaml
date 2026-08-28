@@ -37,11 +37,18 @@ ingress:
   enabled: true
   securityGroup: "sg-0e3b2c025281a338a"
 
-# Health gate. Default provider is a simple /health poll so the demo works
-# out of the box. Switch provider to "cloudwatch" or "datadog" to wire real signals.
+# Level 2: real ALB weighted traffic splitting between stable and canary target
+# groups, so the canary's own CloudWatch metrics can be measured in isolation.
+trafficRouting:
+  enabled: true
+
+# Health gate: gate the QA canary on the canary target group's own 5XX error
+# rate from CloudWatch (real ALB signal), auto-rolling back if it exceeds the
+# threshold. Requires the Rollouts controller to have CloudWatch read (IRSA).
 analysis:
-  provider: web
-  web:
-    intervalSeconds: 30
+  provider: cloudwatch
+  cloudwatch:
+    intervalSeconds: 60
     count: 5
     failureLimit: 1
+    errorRateThreshold: 0.05

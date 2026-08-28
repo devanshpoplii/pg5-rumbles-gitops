@@ -86,4 +86,18 @@ spec:
         startingStep: {{ .Values.rollout.strategy.canary.analysis.startingStep }}
         templates:
           - templateName: {{ .Values.rollout.strategy.canary.analysis.templateName }}
+        {{- if eq .Values.analysis.provider "cloudwatch" }}
+        # Pass the dynamically-created canary target group + load balancer
+        # dimensions from the Rollout status into the AnalysisTemplate, so the
+        # CloudWatch query measures the CANARY target group's own 5XX rate.
+        args:
+          - name: canary-tg
+            valueFrom:
+              fieldRef:
+                fieldPath: status.alb.canaryTargetGroup.fullName
+          - name: lb
+            valueFrom:
+              fieldRef:
+                fieldPath: status.alb.loadBalancer.fullName
+        {{- end }}
       {{- end }}

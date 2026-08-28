@@ -6,6 +6,14 @@ metadata:
   labels:
     {{- include "rumbles.labels" . | nindent 4 }}
 spec:
+  {{- if eq .Values.analysis.provider "cloudwatch" }}
+  # Args passed in by the Rollout from its status.alb.* fields at analysis time:
+  # the dynamically-created canary target group name and the parent load balancer
+  # dimension, used to scope the CloudWatch query to the canary only.
+  args:
+    - name: canary-tg
+    - name: lb
+  {{- end }}
   metrics:
     {{- if eq .Values.analysis.provider "web" }}
     # Simple health-based gate: polls the canary /health endpoint and requires
@@ -20,22 +28,48 @@ spec:
           url: "http://{{ include "rumbles.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}{{ .Values.probes.path }}"
           jsonPath: "{$.status}"
     {{- else if eq .Values.analysis.provider "cloudwatch" }}
-    # CloudWatch gate: promotion continues only while the error metric stays low.
-    # Requires the Rollouts controller to have CloudWatch read permissions (IRSA/Pod Identity).
-    - name: cloudwatch-error-rate
+    # CloudWatch gate on the CANARY target group's own 5XX error rate.
+    # The canary target group is created dynamically by the LB Controller during
+    # the rollout; Argo Rollouts passes its full dimension name and the parent LB
+    # dimension into this template as args (wired in the Rollout's analysis.args
+    # via valueFrom.fieldRef on status.alb.*). Requires the Rollouts controller
+    # to have CloudWatch read (IRSA).
+    - name: canary-5xx-rate
       interval: {{ .Values.analysis.cloudwatch.intervalSeconds }}s
       count: {{ .Values.analysis.cloudwatch.count }}
-      # successCondition asserts the 5XX count stays below threshold.
-      successCondition: "len(result) == 0 || result[0] < 5"
-      failureLimit: 1
+      # error rate = canary 5XX / canary request count. Empty (no traffic yet) is
+      # treated as success so the gate doesn't fail before data arrives.
+      successCondition: "isNaN(result) || result < {{ .Values.analysis.cloudwatch.errorRateThreshold }}"
+      failureLimit: {{ .Values.analysis.cloudwatch.failureLimit }}
       provider:
         cloudWatch:
           metricDataQueries:
+            - id: errorRate
+              expression: "IF(requests > 0, errors / requests, 0)"
             - id: errors
+              returnData: false
               metricStat:
                 metric:
-                  namespace: {{ .Values.analysis.cloudwatch.namespace }}
-                  metricName: {{ .Values.analysis.cloudwatch.metricName }}
+                  namespace: AWS/ApplicationELB
+                  metricName: HTTPCode_Target_5XX_Count
+                  dimensions:
+                    - name: TargetGroup
+                      value: "{{ `{{args.canary-tg}}` }}"
+                    - name: LoadBalancer
+                      value: "{{ `{{args.lb}}` }}"
+                period: 60
+                stat: Sum
+            - id: requests
+              returnData: false
+              metricStat:
+                metric:
+                  namespace: AWS/ApplicationELB
+                  metricName: RequestCount
+                  dimensions:
+                    - name: TargetGroup
+                      value: "{{ `{{args.canary-tg}}` }}"
+                    - name: LoadBalancer
+                      value: "{{ `{{args.lb}}` }}"
                 period: 60
                 stat: Sum
     {{- else if eq .Values.analysis.provider "datadog" }}
