@@ -37,11 +37,11 @@ spec:
     - name: canary-5xx-rate
       interval: {{ .Values.analysis.cloudwatch.intervalSeconds }}s
       count: {{ .Values.analysis.cloudwatch.count }}
-      # error rate = canary 5XX / canary request count. The CloudWatch provider
-      # returns `result` as an ARRAY of data points, so we index result[0].
-      # An empty array (no traffic/data yet) is treated as success so the gate
-      # doesn't fail before data arrives.
-      successCondition: "len(result) == 0 || result[0] < {{ .Values.analysis.cloudwatch.errorRateThreshold }}"
+      # error rate = canary 5XX / canary request count.
+      # CloudWatch returns result[0] as a MetricDataResult whose .Values is the
+      # array of numeric data points over the query window. Pass if there are no
+      # data points yet (no traffic) OR every data point is below the threshold.
+      successCondition: "len(result[0].Values) == 0 || all(result[0].Values, {# < {{ .Values.analysis.cloudwatch.errorRateThreshold }}})"
       failureLimit: {{ .Values.analysis.cloudwatch.failureLimit }}
       provider:
         cloudWatch:
