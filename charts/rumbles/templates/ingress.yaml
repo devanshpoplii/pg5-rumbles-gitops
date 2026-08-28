@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "rumbles.fullname" . }}
+  labels:
+    {{- include "rumbles.labels" . | nindent 4 }}
+  annotations:
+    # Provision an internet-facing ALB.
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # Register pods directly as targets (IP mode) rather than NodePort instances.
+    alb.ingress.kubernetes.io/target-type: ip
+    # Frontend security group (client-facing). Providing our own SG DISABLES the
+    # controller's automatic backend rule management — see the next annotation.
+    alb.ingress.kubernetes.io/security-groups: {{ .Values.ingress.securityGroup | quote }}
+    # Because we supplied a custom frontend SG, we must explicitly ask the
+    # controller to still manage the backend SG rules so the ALB can reach pods.
+    alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"
+    # ALB health check target (matches the app's /health endpoint).
+    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.probes.path | quote }}
+    alb.ingress.kubernetes.io/healthcheck-port: "traffic-port"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "rumbles.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}

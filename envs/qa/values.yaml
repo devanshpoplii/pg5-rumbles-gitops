@@ -31,6 +31,12 @@ rollout:
         templateName: rumbles-health
         # Begin analysis after the first weight step (index 1).
         startingStep: 1
+# QA is exposed via an internet-facing ALB. This both serves traffic and makes
+# the ALB emit CloudWatch metrics (RequestCount, 5XX, latency) used by the gate.
+ingress:
+  enabled: true
+  securityGroup: "sg-0e3b2c025281a338a"
+
 # Health gate. Default provider is a simple /health poll so the demo works
 # out of the box. Switch provider to "cloudwatch" or "datadog" to wire real signals.
 analysis:

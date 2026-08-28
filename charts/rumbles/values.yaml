@@ -19,6 +19,13 @@ service:
   port: 80
   targetPort: 8080
 
+# Ingress (ALB). Disabled by default; enabled per-env (e.g. qa) to provision an
+# internet-facing ALB, which also gives us CloudWatch metrics for the health gate.
+ingress:
+  enabled: false
+  # Frontend security group ID for the ALB (client-facing).
+  securityGroup: ""
+
 resources:
   requests:
     cpu: 50m

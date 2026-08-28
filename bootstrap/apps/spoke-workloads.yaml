@@ -34,23 +34,16 @@ spec:
       namespace: rumbles
 
   # Allow the cluster-scoped and namespaced resources this chart needs.
+  # Allow all resource kinds (cluster- and namespace-scoped). We are not
+  # exercising AppProject resource restrictions in this demo, so the "*" wildcard
+  # avoids having to allow-list each kind (Ingress, ReplicaSet, Pod, etc.).
+  # For a real production project, replace these with an explicit allow-list.
   clusterResourceWhitelist:
-    - group: ""
-      kind: Namespace
+    - group: "*"
+      kind: "*"
   namespaceResourceWhitelist:
-    - group: ""
-      kind: Service
-    - group: argoproj.io
-      kind: Rollout
-    - group: argoproj.io
-      kind: AnalysisTemplate
-    # ReplicaSet and Pod are created BY the Rollout controller (not by us / Git),
-    # but the Argo CD UI only renders child resources that are also allow-listed.
-    # Without these, the Rollout node shows with no ReplicaSet/Pods beneath it.
-    - group: apps
-      kind: ReplicaSet
-    - group: ""
-      kind: Pod
+    - group: "*"
+      kind: "*"
 
   # RBAC role used by CI/CD pipelines to sync qa (least-privilege token).
   roles:
