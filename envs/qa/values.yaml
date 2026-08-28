@@ -8,8 +8,8 @@ image:
   # Real ECR repo. The pipeline writes the immutable digest below on promotion.
   repository: "849445096948.dkr.ecr.eu-north-1.amazonaws.com/rumbles"
   # The pipeline writes the immutable digest here on promotion to qa.
-  digest: "sha256:0ced6a95e93444d7c9cc6a598431c9549e2707636c17085eb8049d750b682d42"
-  tag: "34a21f062a05"
+  digest: "sha256:740768c43a2e26bf07c36d71461fb541e35bc40cd46336505e0f7665fc669aca"
+  tag: "d353b9178746"
 rollout:
   strategy:
     type: canary
@@ -36,12 +36,10 @@ rollout:
 ingress:
   enabled: true
   securityGroup: "sg-0e3b2c025281a338a"
-
 # Level 2: real ALB weighted traffic splitting between stable and canary target
 # groups, so the canary's own CloudWatch metrics can be measured in isolation.
 trafficRouting:
   enabled: true
-
 # Health gate: gate the QA canary on the canary target group's own 5XX error
 # rate from CloudWatch (real ALB signal), auto-rolling back if it exceeds the
 # threshold. Requires the Rollouts controller to have CloudWatch read (IRSA).
