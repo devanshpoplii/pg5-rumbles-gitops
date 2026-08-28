@@ -17,6 +17,13 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        # distroless "nonroot" user is UID 65532. Kubernetes can only verify
+        # runAsNonRoot from a NUMERIC uid (it can't resolve the image's named
+        # user), so we set it explicitly — otherwise the pod fails to start with
+        # "image has non-numeric user (nonroot), cannot verify user is non-root".
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       containers:
